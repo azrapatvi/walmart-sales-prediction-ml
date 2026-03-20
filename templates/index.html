@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Walmart Weekly Sales Prediction</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 350px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            outline: none;
+            font-size: 14px;
+        }
+
+        input:focus, select:focus {
+            border-color: #007bff;
+        }
+
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .prediction {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 18px;
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>Walmart Weekly Sales Prediction</h2>
+
+        <form action="/" method="POST">
+            <input type="number" name="store" placeholder="Enter store no" required>
+
+            <select name="holiday_week">
+                <option value="1">Holiday Week</option>
+                <option value="0">Normal Week</option>
+            </select>
+
+            <input type="number" step="any" name="temperature" placeholder="Enter temperature" required>
+            <input type="number" step="any" name="cpi" placeholder="Enter CPI" required>
+            <input type="number" step="any" name="unemployment" placeholder="Enter unemployment" required>
+            <input type="number" name="month" placeholder="Enter month" required>
+            <input type="number" name="year" placeholder="Enter year" required>
+            <input type="number" step="any" name="lag1" placeholder="Previous week sales" required>
+
+            <input type="submit" value="Predict" class="btn">
+        </form>
+
+        {% if prediction %}
+            <div class="prediction">
+                Predicted Sales: {{ prediction }}
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
