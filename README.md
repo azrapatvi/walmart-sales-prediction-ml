@@ -4,9 +4,23 @@
 ![Scikit-learn](https://img.shields.io/badge/Scikit--learn-ML-orange)
 ![Prophet](https://img.shields.io/badge/Prophet-Forecasting-green)
 ![ARIMA](https://img.shields.io/badge/ARIMA-TimeSeries-purple)
+![Flask](https://img.shields.io/badge/Flask-WebApp-black)
 ![Status](https://img.shields.io/badge/Status-Completed-brightgreen)
 
-Predicting Walmart weekly sales using Machine Learning and Time Series Forecasting. The project covers end-to-end data science — cleaning, EDA, feature engineering, 6 ML models, hyperparameter tuning, ARIMA, SARIMA, Prophet with cross validation, and a saved deployable model.
+Predicting Walmart weekly sales using Machine Learning and Time Series Forecasting — with a Flask web app for live predictions. The project covers end-to-end data science: cleaning, EDA, feature engineering, 6 ML models, hyperparameter tuning, ARIMA, SARIMA, Prophet with cross validation, and a deployed web interface.
+
+---
+
+## Web App Demo
+
+Enter store details in the form and get an instant weekly sales prediction powered by the trained RandomForest model.
+
+```
+Store No  →  Holiday Week?  →  Temperature  →  CPI  →  Unemployment
+Month  →  Year  →  Previous Week Sales  →  Predict
+```
+
+> Built with Flask + HTML/CSS — runs locally on `http://127.0.0.1:5000`
 
 ---
 
@@ -34,10 +48,13 @@ Predicting Walmart weekly sales using Machine Learning and Time Series Forecasti
 ```
 walmart-sales-prediction-ml/
 │
-├── walmart_sales.ipynb        # complete notebook (155 cells)
-├── Walmart_Sales.csv          # raw dataset
-├── randomforestmodel.pkl      # saved best ML model
-├── scaler.pkl                 # saved StandardScaler
+├── walmart_sales.ipynb           # complete notebook (155 cells)
+├── Walmart_Sales.csv             # raw dataset
+├── app.py                        # Flask backend
+├── templates/
+│   └── index.html                # prediction web form
+├── RandomForestRegressor.pkl     # saved ML model
+├── scaler.pkl                    # saved StandardScaler
 └── README.md
 ```
 
@@ -51,8 +68,6 @@ walmart-sales-prediction-ml/
 - Standardised all column names to lowercase
 
 ### 2. Exploratory Data Analysis (EDA)
-
-**Key findings:**
 
 | Finding | Value |
 |---------|-------|
@@ -72,7 +87,7 @@ walmart-sales-prediction-ml/
 - Line chart: weekly sales over time (2010–2012)
 - Heatmap: correlation matrix
 - Pairplot: all numerical features
-- Boxplots and histograms: all numerical columns
+- Boxplots and histograms per column
 - Line chart: sales by store
 
 ### 3. Feature Engineering
@@ -89,7 +104,7 @@ walmart-sales-prediction-ml/
 
 Features used: `store`, `holiday_flag`, `temperature`, `cpi`, `unemployment`, `month`, `year`, `lag1`
 
-Train/test split: 75% / 25% with `StandardScaler` applied.
+Train/test split: 75% / 25% | Scaling: `StandardScaler`
 
 | Model | Train R² | Test R² |
 |-------|----------|---------|
@@ -100,21 +115,19 @@ Train/test split: 75% / 25% with `StandardScaler` applied.
 | LinearRegression | 0.8961 | 0.8895 |
 | AdaBoostRegressor | 0.7537 | 0.7486 |
 
-> DecisionTree scored 1.0 on training data — classic sign of overfitting.
+> DecisionTree scored 1.0 on training — classic overfitting.
 
 ### 5. Hyperparameter Tuning
 
-Used `RandomizedSearchCV` (5-fold CV, 20 iterations) on top 3 models.
-
-**Best params:**
+`RandomizedSearchCV` — 5-fold CV, 20 iterations on top 3 models.
 
 ```
-RandomForest       → n_estimators=100, max_depth=15, min_samples_split=2   CV score: 0.9268
-GradientBoosting   → n_estimators=50,  max_depth=5,  learning_rate=0.1, subsample=0.2   CV score: 0.9252
-KNeighbors         → n_neighbors=5, weights='distance'   CV score: 0.9182
+RandomForest      → n_estimators=100, max_depth=15, min_samples_split=2    CV: 0.9268
+GradientBoosting  → n_estimators=50,  max_depth=5,  learning_rate=0.1      CV: 0.9252
+KNeighbors        → n_neighbors=5, weights='distance'                       CV: 0.9182
 ```
 
-**Final RandomForest (retrained with best params):**
+**Final RandomForest metrics:**
 ```
 MAE  : $79,907
 RMSE : $151,053
@@ -123,33 +136,15 @@ R²   : 0.9293
 
 ### 6. Time Series Forecasting
 
-**Data used:** weekly sales aggregated across all 45 stores (143 weekly data points)
+Data: weekly sales aggregated across all 45 stores (143 data points)
 
-#### STL Decomposition
-Decomposed the series into trend, seasonality and residual using `seasonal=53`.
-
-#### Stationarity Test (ADF)
-```
-ADF statistic : -5.907
-p-value       : 2.69e-07
-Result        : Stationary — no differencing needed
-```
-
-#### ARIMA
-`auto_arima` selected **ARIMA(2,0,0) with intercept** — AIC = 4829.253
-
-#### SARIMA
-`SARIMAX(2,0,2)(2,0,2,52)` — fitted but underperformed due to insufficient data for 52-week seasonal terms.
-
-#### Prophet
-Best time series model. Handles yearly seasonality and holiday spikes natively.
-
-```python
-m = Prophet(yearly_seasonality=True, weekly_seasonality=False,
-            changepoint_prior_scale=0.3)
-m.add_regressor('holiday_flag')
-m.fit(df_prophet)
-```
+| Method | Result |
+|--------|--------|
+| STL Decomposition | Trend + seasonality + residual extracted |
+| ADF Test | p = 2.69e-07 → stationary, no differencing needed |
+| ARIMA | auto_arima → ARIMA(2,0,0), AIC = 4829.253 |
+| SARIMA | SARIMAX(2,0,2)(2,0,2,52) — underperformed (too little data for 52-week terms) |
+| Prophet | Best time series model — captures holiday spikes + yearly seasonality |
 
 ### 7. Prophet Cross Validation
 
@@ -158,14 +153,21 @@ df_cv = cross_validation(m, initial='365 days', period='90 days', horizon='90 da
 df_p  = performance_metrics(df_cv)
 ```
 
-Plots produced:
-- MAPE across forecast horizon
-- 6-month future forecast
-- Trend + yearly seasonality components
+Outputs: MAPE across horizon, 6-month future forecast, trend + seasonality components.
 
 ---
 
-## How to Run
+## Flask Web App
+
+### How it works
+
+```
+User fills form  →  app.py receives POST request
+→  loads scaler.pkl + RandomForestRegressor.pkl
+→  scales input  →  model.predict()  →  shows result in browser
+```
+
+### Run locally
 
 ```bash
 # 1. clone the repo
@@ -173,50 +175,49 @@ git clone https://github.com/your-username/walmart-sales-prediction-ml.git
 cd walmart-sales-prediction-ml
 
 # 2. install dependencies
-pip install pandas numpy matplotlib seaborn scikit-learn statsmodels pmdarima prophet plotly
+pip install flask pandas numpy scikit-learn
 
-# 3. open notebook
-jupyter notebook walmart_sales.ipynb
+# 3. run the app
+python app.py
+
+# 4. open in browser
+http://127.0.0.1:5000
 ```
+
+### Input fields
+
+| Field | Example |
+|-------|---------|
+| Store no | 1 |
+| Holiday week | Holiday Week / Normal Week |
+| Temperature | 39.93 |
+| CPI | 211.28 |
+| Unemployment | 8.10 |
+| Month | 2 |
+| Year | 2010 |
+| Previous week sales (lag1) | 1641957.44 |
+
+**Output:** `Predicted Sales: $1,626,585.68`
 
 ---
 
-## Predict on New Data
+## Install All Dependencies
 
-```python
-import pickle, pandas as pd
-
-with open('randomforestmodel.pkl', 'rb') as f:
-    model = pickle.load(f)
-with open('scaler.pkl', 'rb') as f:
-    scaler = pickle.load(f)
-
-new_data = pd.DataFrame({
-    'store':        [1],
-    'holiday_flag': [0],
-    'temperature':  [39.93],
-    'cpi':          [211.28],
-    'unemployment': [8.10],
-    'month':        [2],
-    'year':         [2010],
-    'lag1':         [1641957.44]
-})
-
-prediction = model.predict(scaler.transform(new_data))
-print(f"Predicted Weekly Sales: ${prediction[0]:,.2f}")
-# Output → Predicted Weekly Sales: $1,626,585.68
+```bash
+pip install pandas numpy matplotlib seaborn scikit-learn statsmodels pmdarima prophet plotly flask
 ```
 
 ---
 
 ## Tech Stack
 
-| Category | Libraries |
-|----------|-----------|
+| Category | Libraries / Tools |
+|----------|-------------------|
 | Data | pandas, numpy |
 | Visualisation | matplotlib, seaborn, plotly |
 | Machine Learning | scikit-learn |
 | Time Series | statsmodels, pmdarima, prophet |
+| Web App | Flask, HTML, CSS |
 | Model Saving | pickle |
 
 ---
@@ -225,11 +226,12 @@ print(f"Predicted Weekly Sales: ${prediction[0]:,.2f}")
 
 | Item | Finding |
 |------|---------|
-| Best ML model | RandomForestRegressor |
+| Best ML model | GradientBoostingRegressor (R² = 0.94) |
+| Deployed model | RandomForestRegressor (R² = 0.93) |
 | Best time series model | Prophet |
 | Strongest features | `lag1`, `store` |
 | Holiday impact | +8% average sales vs normal weeks |
 | Peak sales week | 24 Dec 2010 — $80.9M |
 | Peak month (total) | July |
 
-ML models outperform ARIMA and SARIMA on this dataset because weekly sales are driven by many factors — store identity, previous week sales, holidays, CPI — not just time patterns alone. GradientBoosting and RandomForest leverage all these features together, which gives them a major accuracy advantage over pure time series approaches.
+ML models outperform ARIMA and SARIMA on this dataset because weekly sales are driven by many factors — store identity, previous week sales, holidays, CPI — not just time patterns alone. GradientBoosting and RandomForest leverage all these features together, giving them a major accuracy advantage over pure time series approaches.
